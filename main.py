@@ -26,7 +26,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PyQt6.QtCore import Qt, QUrl, QEvent, pyqtSignal, QObject, QThread
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtGui import QIcon, QDesktopServices
 
 # --- Constants ---
 LIBRARY_FILE = "library.json"
@@ -200,6 +200,7 @@ class EpubReader(QMainWindow):
         super().__init__()
         self.setWindowTitle("Aperture EPUB Reader")
         self.setGeometry(100, 100, 1200, 800)
+        self.setWindowIcon(QIcon('icon.png'))
         
         self.library_data = {}
         self.current_book = None
