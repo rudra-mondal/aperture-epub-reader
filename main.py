@@ -252,6 +252,8 @@ class EpubReader(QMainWindow):
         
         add_button = QPushButton("Add Book to Library")
         add_button.setStyleSheet("QPushButton { font-size: 14px; padding: 10px; }")
+        add_button.setToolTip("Add a new EPUB book to your library")
+        add_button.setAccessibleName("Add Book to Library")
         add_button.clicked.connect(self.add_book_to_library)
         
         layout.addWidget(title)
@@ -298,15 +300,25 @@ class EpubReader(QMainWindow):
         controls_layout.setSpacing(8)
 
         prev_button = QPushButton("‹ Previous")
+        prev_button.setToolTip("Go to previous chapter (Left Arrow)")
+        prev_button.setAccessibleName("Previous Chapter")
         prev_button.clicked.connect(self.prev_chapter)
+
         next_button = QPushButton("Next ›")
+        next_button.setToolTip("Go to next chapter (Right Arrow)")
+        next_button.setAccessibleName("Next Chapter")
         next_button.clicked.connect(self.next_chapter)
 
         self.play_pause_button = QPushButton("▶ Read Aloud")
         self.play_pause_button.setFixedWidth(100)
+        self.play_pause_button.setToolTip("Start reading aloud from the current chapter")
+        self.play_pause_button.setAccessibleName("Read Aloud Play Pause Toggle")
         self.play_pause_button.clicked.connect(self.toggle_read_aloud)
+
         self.stop_button = QPushButton("■")
         self.stop_button.setFixedWidth(30)
+        self.stop_button.setToolTip("Stop reading aloud")
+        self.stop_button.setAccessibleName("Stop Reading Aloud")
         self.stop_button.clicked.connect(self.stop_read_aloud)
         self.stop_button.setEnabled(False)
         
