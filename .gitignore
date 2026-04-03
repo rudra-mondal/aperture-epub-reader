@@ -1,3 +1,6 @@
 .venv
 library.json
 test.py
+venv/
+__pycache__/
+*.pyc
