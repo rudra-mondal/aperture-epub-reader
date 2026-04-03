@@ -217,8 +217,6 @@ class EpubReader(QMainWindow):
         self.tts_text_map = []
         self.last_highlighted_id = None
         
-        self.initialize_kokoro()
-        
         self.central_widget = QStackedWidget()
         self.setCentralWidget(self.central_widget)
         self.setup_library_view()
@@ -366,14 +364,24 @@ class EpubReader(QMainWindow):
             return
 
         voice_key = self.voice_combo.currentData()
-        if (lang_code := ALL_VOICES_DATA[voice_key]["lang_code"]) not in self.kokoro_pipelines:
-            QMessageBox.critical(self, "TTS Engine Error", f"TTS engine for language '{lang_code}' not loaded.")
+        lang_code = ALL_VOICES_DATA[voice_key]["lang_code"]
+
+        self.play_pause_button.setText("Loading TTS...")
+        self.play_pause_button.setEnabled(False)
+        QApplication.processEvents() # allow UI to update the button text
+
+        pipeline = self.get_kokoro_pipeline(lang_code)
+
+        if not pipeline:
+            self.play_pause_button.setText("▶ Read Aloud")
+            self.play_pause_button.setEnabled(True)
+            QMessageBox.critical(self, "TTS Engine Error", f"TTS engine for language '{lang_code}' failed to load.")
             return
             
         self.tts_thread = QThread()
         self.tts_worker = TTSWorker()
         self.tts_worker.highlight_requested.connect(self.update_text_highlight)
-        self.tts_worker.configure(self.kokoro_pipelines[lang_code], self.tts_text_map, voice_key, self.speed_slider.value() / 10.0)
+        self.tts_worker.configure(pipeline, self.tts_text_map, voice_key, self.speed_slider.value() / 10.0)
         self.tts_worker.moveToThread(self.tts_thread)
         self.tts_thread.started.connect(self.tts_worker.run)
         self.tts_worker.finished.connect(self.on_tts_finished)
@@ -381,6 +389,7 @@ class EpubReader(QMainWindow):
         self.tts_thread.start()
         
         self.play_pause_button.setText("❚❚ Pause")
+        self.play_pause_button.setEnabled(True)
         self.stop_button.setEnabled(True)
         self.voice_combo.setEnabled(False)
         self.speed_slider.setEnabled(False)
@@ -520,17 +529,16 @@ class EpubReader(QMainWindow):
                 processed_lines.append(line)
         return '\n'.join(processed_lines)
 
-    def initialize_kokoro(self):
-        print("Initializing Kokoro TTS engines...")
-        active_lang_codes = sorted(list(set(v["lang_code"] for v in ALL_VOICES_DATA.values())))
-        for lc in active_lang_codes:
+    def get_kokoro_pipeline(self, lang_code):
+        if lang_code not in self.kokoro_pipelines:
+            print(f"Loading pipeline for language code: '{lang_code}'...")
             try:
-                print(f"Loading pipeline for language code: '{lc}'...")
-                self.kokoro_pipelines[lc] = KPipeline(lang_code=lc)
-                print(f" -> Pipeline for '{lc}' OK.")
+                self.kokoro_pipelines[lang_code] = KPipeline(lang_code=lang_code)
+                print(f" -> Pipeline for '{lang_code}' OK.")
             except Exception as e:
-                print(f"ERROR: Failed to initialize Kokoro for lang '{lc}'. Error: {e}")
-        print("Kokoro initialization complete.")
+                print(f"ERROR: Failed to initialize Kokoro for lang '{lang_code}'. Error: {e}")
+                return None
+        return self.kokoro_pipelines[lang_code]
 
     def open_book_from_library(self, item):
         self.stop_read_aloud()
