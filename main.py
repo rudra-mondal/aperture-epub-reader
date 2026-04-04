@@ -150,6 +150,7 @@ class EpubReader(QMainWindow):
                 if (path := url.path().lstrip('/')) in self.href_map:
                     self.internal_link_clicked.emit(self.href_map[path])
                     return False
+                return False
             return True
 
     ACRONYMS = {'USA', 'UK', 'EU', 'UN', 'NASA', 'FBI', 'CIA', 'CEO', 'CFO', 'CTO', 'NFL', 'NBA', 'MLB', 'NHL', 'ESPN', 'NATO', 'UNESCO', 'WHO', 'FAQ', 'DIY', 'AI', 'VR', 'AR', 'URL', 'HTTP', 'HTTPS', 'WWW', 'PDF', 'EPUB'}
