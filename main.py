@@ -11,7 +11,6 @@ import base64
 import urllib.parse
 
 # --- TTS & Audio Imports ---
-import torch
 from kokoro import KPipeline
 import sounddevice as sd
 import numpy as np
