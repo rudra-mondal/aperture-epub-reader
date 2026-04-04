@@ -434,11 +434,19 @@ class EpubReader(QMainWindow):
             return
 
         if self.last_highlighted_id:
-            js_code_remove = f"document.getElementById('{self.last_highlighted_id}').classList.remove('reading-highlight');"
+            # Wrap JS in a block scope to prevent identifier conflicts and add a null check.
+            js_code_remove = f"""
+                {{
+                    let el = document.getElementById('{self.last_highlighted_id}');
+                    if (el) {{
+                        el.classList.remove('reading-highlight');
+                    }}
+                }}
+            """
             self.web_view.page().runJavaScript(js_code_remove)
         
         if new_id:
-            # FIX: Wrap JS in a block scope to prevent "Identifier has already been declared" error.
+            # Wrap JS in a block scope to prevent identifier conflicts and add a null check.
             js_code_add = f"""
                 {{
                     let el = document.getElementById('{new_id}');
