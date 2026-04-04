@@ -154,10 +154,16 @@ class EpubReader(QMainWindow):
 
     ACRONYMS = {'USA', 'UK', 'EU', 'UN', 'NASA', 'FBI', 'CIA', 'CEO', 'CFO', 'CTO', 'NFL', 'NBA', 'MLB', 'NHL', 'ESPN', 'NATO', 'UNESCO', 'WHO', 'FAQ', 'DIY', 'AI', 'VR', 'AR', 'URL', 'HTTP', 'HTTPS', 'WWW', 'PDF', 'EPUB'}
 
+    SENTENCE_SPLIT_PATTERN = re.compile(r'(?<=[.?!])\s+')
+    LINK_PATTERN = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+    PROTOCOL_PATTERN = re.compile(r'^https?://')
+    SPACE_PATTERN = re.compile(r' +')
+    PUNCTUATION_SUFFIX_PATTERN = re.compile(r'[.,!?;:]$')
+
     def _split_into_sentences(self, text):
         if not text:
             return []
-        sentences = re.split(r'(?<=[.?!])\s+', text.strip())
+        sentences = self.SENTENCE_SPLIT_PATTERN.split(text.strip())
         return [s.strip() for s in sentences if s.strip()]
 
     def _prepare_content_for_tts(self, soup):
@@ -511,10 +517,10 @@ class EpubReader(QMainWindow):
     def _pronounce_links(self, text):
         def replace_link(match):
             url = match.group(0)
-            pronounceable = re.sub(r'^https?://', '', url)
+            pronounceable = self.PROTOCOL_PATTERN.sub('', url)
             pronounceable = pronounceable.replace('.', ' dot ').replace('/', ' slash ').replace('-', ' hyphen ').replace('_', ' underscore ')
-            return re.sub(r' +', ' ', pronounceable).strip()
-        return re.sub(r'https?://[^\s<>"]+|www\.[^\s<>"]+', replace_link, text)
+            return self.SPACE_PATTERN.sub(' ', pronounceable).strip()
+        return self.LINK_PATTERN.sub(replace_link, text)
 
     def _pronounce_special_chars(self, text):
         replacements = {' > ': ' is greater than ', ' < ': ' is less than ', '+': ' plus ', '=': ' equals ', ' - ': ' minus '}
@@ -531,7 +537,7 @@ class EpubReader(QMainWindow):
             if len(uppercase_words) > 2:
                 processed_words = []
                 for word in words:
-                    clean_word = re.sub(r'[.,!?;:]$', '', word)
+                    clean_word = self.PUNCTUATION_SUFFIX_PATTERN.sub('', word)
                     if clean_word.isupper() and len(clean_word) > 1 and clean_word not in self.ACRONYMS:
                         processed_words.append(word.title())
                     else:
