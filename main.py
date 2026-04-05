@@ -157,6 +157,8 @@ class EpubReader(QMainWindow):
     LINK_PATTERN = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
     PROTOCOL_PATTERN = re.compile(r'^https?://')
     SPACE_PATTERN = re.compile(r' +')
+    PUNCTUATION_SUFFIX_PATTERN = re.compile(r'[.,!?;:]$')
+    CLEAN_SPACING_PATTERN = re.compile(r' +([.,!?;:])')
 
     def _split_into_sentences(self, text):
         if not text:
@@ -176,6 +178,8 @@ class EpubReader(QMainWindow):
             original_text = element.get_text(separator=" ", strip=True)
             if not original_text:
                 continue
+
+            original_text = self.CLEAN_SPACING_PATTERN.sub(r'\1', original_text)
 
             sentences = self._split_into_sentences(original_text)
             
