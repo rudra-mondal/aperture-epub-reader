@@ -100,5 +100,36 @@ class TestPronounceSpecialChars(unittest.TestCase):
         expected = " plus  and  plus  and  equals "
         self.assertEqual(EpubReader._pronounce_special_chars(self.reader, text), expected)
 
+class TestGetMimeType(unittest.TestCase):
+    def setUp(self):
+        try:
+            self.reader = EpubReader()
+        except Exception:
+            self.reader = None
+
+    def test_jpeg(self):
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "image.jpg"), "image/jpeg")
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "image.jpeg"), "image/jpeg")
+
+    def test_png(self):
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "image.png"), "image/png")
+
+    def test_gif(self):
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "image.gif"), "image/gif")
+
+    def test_svg(self):
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "image.svg"), "image/svg+xml")
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "image.svgz"), "image/svg+xml")
+
+    def test_case_insensitive(self):
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "IMAGE.JPG"), "image/jpeg")
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "image.PNG"), "image/png")
+
+    def test_fallback(self):
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "document.pdf"), "application/octet-stream")
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "archive.zip"), "application/octet-stream")
+        self.assertEqual(EpubReader._get_mime_type(self.reader, "no_extension_file"), "application/octet-stream")
+
+
 if __name__ == '__main__':
     unittest.main()
