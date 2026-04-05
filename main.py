@@ -153,6 +153,7 @@ class EpubReader(QMainWindow):
             return True
 
     ACRONYMS = {'USA', 'UK', 'EU', 'UN', 'NASA', 'FBI', 'CIA', 'CEO', 'CFO', 'CTO', 'NFL', 'NBA', 'MLB', 'NHL', 'ESPN', 'NATO', 'UNESCO', 'WHO', 'FAQ', 'DIY', 'AI', 'VR', 'AR', 'URL', 'HTTP', 'HTTPS', 'WWW', 'PDF', 'EPUB'}
+    SPECIAL_CHAR_REPLACEMENTS = {' > ': ' is greater than ', ' < ': ' is less than ', '+': ' plus ', '=': ' equals ', ' - ': ' minus '}
 
     SENTENCE_SPLIT_PATTERN = re.compile(r'(?<=[.?!])\s+')
     LINK_PATTERN = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
@@ -531,8 +532,7 @@ class EpubReader(QMainWindow):
         return self.LINK_PATTERN.sub(replace_link, text)
 
     def _pronounce_special_chars(self, text):
-        replacements = {' > ': ' is greater than ', ' < ': ' is less than ', '+': ' plus ', '=': ' equals ', ' - ': ' minus '}
-        for char, spoken in replacements.items():
+        for char, spoken in EpubReader.SPECIAL_CHAR_REPLACEMENTS.items():
             text = text.replace(char, spoken)
         return text
 
