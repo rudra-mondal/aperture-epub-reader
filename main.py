@@ -4,7 +4,6 @@ import json
 import re
 import time
 import traceback
-import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 import base64
@@ -218,6 +217,7 @@ class EpubReader(QMainWindow):
         self.href_map = {}
         self.items_by_href = {}
         self.current_chapter_index = 0
+        self.image_b64_cache = {}
         
         self.kokoro_pipelines = {}
         self.tts_thread = None
@@ -489,11 +489,13 @@ class EpubReader(QMainWindow):
                 continue
             img_path = urllib.parse.urljoin(chapter_item.get_name(), urllib.parse.unquote(img_src))
             if img_path in self.items_by_href:
-                img_item = self.items_by_href[img_path]
-                img_data = img_item.get_content()
-                mime = self._get_mime_type(img_item.get_name())
-                b64 = base64.b64encode(img_data).decode('utf-8')
-                img_tag['src'] = f"data:{mime};base64,{b64}"
+                if img_path not in self.image_b64_cache:
+                    img_item = self.items_by_href[img_path]
+                    img_data = img_item.get_content()
+                    mime = self._get_mime_type(img_item.get_name())
+                    b64 = base64.b64encode(img_data).decode('utf-8')
+                    self.image_b64_cache[img_path] = f"data:{mime};base64,{b64}"
+                img_tag['src'] = self.image_b64_cache[img_path]
         
         for s in soup(['style', 'link', 'script']):
             s.decompose()
@@ -525,13 +527,14 @@ class EpubReader(QMainWindow):
         self.save_progress()
         self.update_toc_selection()
         
+    def _replace_link(self, match):
+        url = match.group(0)
+        pronounceable = self.PROTOCOL_PATTERN.sub('', url)
+        pronounceable = pronounceable.replace('.', ' dot ').replace('/', ' slash ').replace('-', ' hyphen ').replace('_', ' underscore ')
+        return self.SPACE_PATTERN.sub(' ', pronounceable).strip()
+
     def _pronounce_links(self, text):
-        def replace_link(match):
-            url = match.group(0)
-            pronounceable = self.PROTOCOL_PATTERN.sub('', url)
-            pronounceable = pronounceable.replace('.', ' dot ').replace('/', ' slash ').replace('-', ' hyphen ').replace('_', ' underscore ')
-            return self.SPACE_PATTERN.sub(' ', pronounceable).strip()
-        return self.LINK_PATTERN.sub(replace_link, text)
+        return self.LINK_PATTERN.sub(self._replace_link, text)
 
     def _pronounce_special_chars(self, text):
         replacements = {' > ': ' is greater than ', ' < ': ' is less than ', '+': ' plus ', '=': ' equals ', ' - ': ' minus '}
@@ -548,7 +551,7 @@ class EpubReader(QMainWindow):
             if len(uppercase_words) > 2:
                 processed_words = []
                 for word in words:
-                    clean_word = self.PUNCTUATION_SUFFIX_PATTERN.sub('', word)
+                    clean_word = word.rstrip('.,!?;:')
                     if clean_word.isupper() and len(clean_word) > 1 and clean_word not in self.ACRONYMS:
                         processed_words.append(word.title())
                     else:
@@ -579,6 +582,7 @@ class EpubReader(QMainWindow):
             self.spine = self.current_book.spine
             self.href_map = {item.get_name(): i for i, id in enumerate(self.spine) if (item := self.current_book.get_item_with_id(id[0]))}
             self.items_by_href = {item.get_name(): item for item in self.current_book.get_items()}
+            self.image_b64_cache = {}
             self.web_view.page().href_map = self.href_map
             self.populate_toc()
             self.current_chapter_index = book_data.get('last_position', 0)
