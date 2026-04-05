@@ -4,7 +4,6 @@ import json
 import re
 import time
 import traceback
-import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 import base64
