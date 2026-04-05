@@ -100,5 +100,51 @@ class TestPronounceSpecialChars(unittest.TestCase):
         expected = " plus  and  plus  and  equals "
         self.assertEqual(EpubReader._pronounce_special_chars(self.reader, text), expected)
 
+class TestSplitIntoSentences(unittest.TestCase):
+    def setUp(self):
+        # We don't really need to instantiate EpubReader if we call the method on the class
+        # But let's see if we can instantiate it with mocks
+        try:
+            self.reader = EpubReader()
+        except Exception:
+            # If instantiation fails due to some complex PyQt logic, we'll use None as self
+            self.reader = EpubReader
+            pass
+
+    def test_empty_string(self):
+        self.assertEqual(EpubReader._split_into_sentences(EpubReader, ""), [])
+        self.assertEqual(EpubReader._split_into_sentences(EpubReader, None), [])
+
+    def test_single_sentence(self):
+        text = "This is a single sentence."
+        expected = ["This is a single sentence."]
+        self.assertEqual(EpubReader._split_into_sentences(EpubReader, text), expected)
+
+    def test_multiple_sentences_period(self):
+        text = "First sentence. Second sentence. Third sentence."
+        expected = ["First sentence.", "Second sentence.", "Third sentence."]
+        self.assertEqual(EpubReader._split_into_sentences(EpubReader, text), expected)
+
+    def test_multiple_sentences_mixed_punctuation(self):
+        text = "Is this a question? Yes, it is! Awesome."
+        expected = ["Is this a question?", "Yes, it is!", "Awesome."]
+        self.assertEqual(EpubReader._split_into_sentences(EpubReader, text), expected)
+
+    def test_multiple_spaces(self):
+        text = "Sentence one.    Sentence two. \t Sentence three."
+        expected = ["Sentence one.", "Sentence two.", "Sentence three."]
+        self.assertEqual(EpubReader._split_into_sentences(EpubReader, text), expected)
+
+    def test_no_trailing_punctuation(self):
+        text = "This sentence has no punctuation"
+        expected = ["This sentence has no punctuation"]
+        self.assertEqual(EpubReader._split_into_sentences(EpubReader, text), expected)
+
+    def test_extra_whitespace_around(self):
+        text = "  \n  First. Second. \n "
+        expected = ["First.", "Second."]
+        self.assertEqual(EpubReader._split_into_sentences(EpubReader, text), expected)
+
+
 if __name__ == '__main__':
     unittest.main()
