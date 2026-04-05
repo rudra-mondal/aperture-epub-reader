@@ -100,5 +100,58 @@ class TestPronounceSpecialChars(unittest.TestCase):
         expected = " plus  and  plus  and  equals "
         self.assertEqual(EpubReader._pronounce_special_chars(self.reader, text), expected)
 
+class TestPronounceLinks(unittest.TestCase):
+    def setUp(self):
+        try:
+            self.reader = EpubReader()
+        except Exception:
+            self.reader = EpubReader
+
+    def test_http_url(self):
+        text = "Visit http://example.com"
+        expected = "Visit example dot com"
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+    def test_https_url(self):
+        text = "Secure site at https://www.example.com"
+        expected = "Secure site at www dot example dot com"
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+    def test_www_url(self):
+        text = "Go to www.example.com"
+        expected = "Go to www dot example dot com"
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+    def test_url_with_path_and_hyphens(self):
+        text = "Read more at https://example.com/my-page/info"
+        expected = "Read more at example dot com slash my hyphen page slash info"
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+    def test_url_with_underscores(self):
+        text = "Check http://example.com/my_page_info"
+        expected = "Check example dot com slash my underscore page underscore info"
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+    def test_multiple_urls(self):
+        text = "Link one: http://example.com and Link two: www.test.org/page"
+        expected = "Link one: example dot com and Link two: www dot test dot org slash page"
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+    def test_no_urls(self):
+        text = "Just some normal text with no links."
+        expected = "Just some normal text with no links."
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+    def test_empty_string(self):
+        text = ""
+        expected = ""
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+    def test_url_in_quotes(self):
+        text = 'Here is a link "http://example.com".'
+        expected = 'Here is a link "example dot com".'
+        self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
+
+
 if __name__ == '__main__':
     unittest.main()
