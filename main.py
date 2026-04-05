@@ -158,7 +158,6 @@ class EpubReader(QMainWindow):
     LINK_PATTERN = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
     PROTOCOL_PATTERN = re.compile(r'^https?://')
     SPACE_PATTERN = re.compile(r' +')
-    PUNCTUATION_SUFFIX_PATTERN = re.compile(r'[.,!?;:]$')
 
     def _split_into_sentences(self, text):
         if not text:
@@ -545,7 +544,7 @@ class EpubReader(QMainWindow):
             if len(uppercase_words) > 2:
                 processed_words = []
                 for word in words:
-                    clean_word = self.PUNCTUATION_SUFFIX_PATTERN.sub('', word)
+                    clean_word = word.rstrip('.,!?;:')
                     if clean_word.isupper() and len(clean_word) > 1 and clean_word not in self.ACRONYMS:
                         processed_words.append(word.title())
                     else:
