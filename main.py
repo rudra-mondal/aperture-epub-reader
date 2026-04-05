@@ -524,13 +524,14 @@ class EpubReader(QMainWindow):
         self.save_progress()
         self.update_toc_selection()
         
+    def _replace_link(self, match):
+        url = match.group(0)
+        pronounceable = self.PROTOCOL_PATTERN.sub('', url)
+        pronounceable = pronounceable.replace('.', ' dot ').replace('/', ' slash ').replace('-', ' hyphen ').replace('_', ' underscore ')
+        return self.SPACE_PATTERN.sub(' ', pronounceable).strip()
+
     def _pronounce_links(self, text):
-        def replace_link(match):
-            url = match.group(0)
-            pronounceable = self.PROTOCOL_PATTERN.sub('', url)
-            pronounceable = pronounceable.replace('.', ' dot ').replace('/', ' slash ').replace('-', ' hyphen ').replace('_', ' underscore ')
-            return self.SPACE_PATTERN.sub(' ', pronounceable).strip()
-        return self.LINK_PATTERN.sub(replace_link, text)
+        return self.LINK_PATTERN.sub(self._replace_link, text)
 
     def _pronounce_special_chars(self, text):
         replacements = {' > ': ' is greater than ', ' < ': ' is less than ', '+': ' plus ', '=': ' equals ', ' - ': ' minus '}
