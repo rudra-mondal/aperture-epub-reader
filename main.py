@@ -163,7 +163,7 @@ class EpubReader(QMainWindow):
     def _split_into_sentences(self, text):
         if not text:
             return []
-        sentences = self.SENTENCE_SPLIT_PATTERN.split(text.strip())
+        sentences = EpubReader.SENTENCE_SPLIT_PATTERN.split(text.strip())
         return [s.strip() for s in sentences if s.strip()]
 
     def _prepare_content_for_tts(self, soup):
@@ -179,7 +179,7 @@ class EpubReader(QMainWindow):
             if not original_text:
                 continue
 
-            original_text = self.CLEAN_SPACING_PATTERN.sub(r'\1', original_text)
+            original_text = EpubReader.CLEAN_SPACING_PATTERN.sub(r'\1', original_text)
 
             sentences = self._split_into_sentences(original_text)
             
@@ -554,7 +554,7 @@ class EpubReader(QMainWindow):
                 processed_words = []
                 for word in words:
                     clean_word = word.rstrip('.,!?;:')
-                    if clean_word.isupper() and len(clean_word) > 1 and clean_word not in self.ACRONYMS:
+                    if clean_word.isupper() and len(clean_word) > 1 and clean_word not in EpubReader.ACRONYMS:
                         processed_words.append(word.title())
                     else:
                         processed_words.append(word)
