@@ -3,7 +3,7 @@ import os
 import json
 import re
 import time
-import traceback
+import logging
 from ebooklib import epub
 from bs4 import BeautifulSoup
 import base64
@@ -25,6 +25,9 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PyQt6.QtCore import Qt, QUrl, QEvent, pyqtSignal, QObject, QThread
 from PyQt6.QtGui import QIcon, QDesktopServices
+
+# --- Logging ---
+logger = logging.getLogger(__name__)
 
 # --- Constants ---
 LIBRARY_FILE = "library.json"
@@ -77,7 +80,7 @@ class TTSWorker(QObject):
                 if not self._is_running:
                     break
         except Exception as e:
-            traceback.print_exc()
+            logger.exception("Error during TTS generation")
             self.error.emit(f"Error during TTS generation: {e}")
         finally:
             self.audio_queue.put((None, None))
@@ -527,11 +530,12 @@ class EpubReader(QMainWindow):
         self.save_progress()
         self.update_toc_selection()
         
-    def _replace_link(self, match):
+    @staticmethod
+    def _replace_link(match):
         url = match.group(0)
-        pronounceable = self.PROTOCOL_PATTERN.sub('', url)
+        pronounceable = EpubReader.PROTOCOL_PATTERN.sub('', url)
         pronounceable = pronounceable.replace('.', ' dot ').replace('/', ' slash ').replace('-', ' hyphen ').replace('_', ' underscore ')
-        return self.SPACE_PATTERN.sub(' ', pronounceable).strip()
+        return EpubReader.SPACE_PATTERN.sub(' ', pronounceable).strip()
 
     def _pronounce_links(self, text):
         return self.LINK_PATTERN.sub(self._replace_link, text)
@@ -563,12 +567,12 @@ class EpubReader(QMainWindow):
 
     def get_kokoro_pipeline(self, lang_code):
         if lang_code not in self.kokoro_pipelines:
-            print(f"Loading pipeline for language code: '{lang_code}'...")
+            logger.info(f"Loading pipeline for language code: '{lang_code}'...")
             try:
                 self.kokoro_pipelines[lang_code] = KPipeline(lang_code=lang_code)
-                print(f" -> Pipeline for '{lang_code}' OK.")
+                logger.info(f" -> Pipeline for '{lang_code}' OK.")
             except Exception as e:
-                print(f"ERROR: Failed to initialize Kokoro for lang '{lang_code}'. Error: {e}")
+                logger.error(f"Failed to initialize Kokoro for lang '{lang_code}': {e}")
                 return None
         return self.kokoro_pipelines[lang_code]
 
@@ -590,7 +594,7 @@ class EpubReader(QMainWindow):
             self.central_widget.setCurrentWidget(self.reading_view_widget)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Could not open EPUB.\n\nError: {e}")
-            print(f"Error: {e}")
+            logger.error(f"Error opening book: {e}")
 
     def show_library_view(self):
         self.stop_read_aloud()
@@ -625,7 +629,7 @@ class EpubReader(QMainWindow):
                     self.save_library()
                     self.update_library_list()
             except Exception as e:
-                print(f"Error adding book: {e}")
+                logger.error(f"Error adding book: {e}")
 
     def update_library_list(self):
         self.library_list.clear()
@@ -693,6 +697,7 @@ class EpubReader(QMainWindow):
                 break
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     app = QApplication(sys.argv)
     reader = EpubReader()
     reader.show()
