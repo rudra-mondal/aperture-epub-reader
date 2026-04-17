@@ -497,6 +497,8 @@ class EpubReader(QMainWindow):
                     b64 = base64.b64encode(img_data).decode('utf-8')
                     self.image_b64_cache[img_path] = f"data:{mime};base64,{b64}"
                 img_tag['src'] = self.image_b64_cache[img_path]
+            else:
+                img_tag['src'] = ''
         
         for s in soup(['style', 'link', 'script']):
             s.decompose()
