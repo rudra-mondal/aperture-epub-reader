@@ -31,12 +31,9 @@ import unittest
 
 class TestPronounceSpecialChars(unittest.TestCase):
     def setUp(self):
-        # We don't really need to instantiate EpubReader if we call the method on the class
-        # But let's see if we can instantiate it with mocks
         try:
             self.reader = EpubReader()
         except Exception:
-            # If instantiation fails due to some complex PyQt logic, we'll use None as self
             self.reader = None
 
     def test_greater_than(self):
@@ -81,7 +78,6 @@ class TestPronounceSpecialChars(unittest.TestCase):
 
     def test_mixed(self):
         text = "1 + 1 = 2 > 0"
-        # Since replacements are literal, "1 + 1" becomes "1  plus  1"
         expected = "1  plus  1  equals  2 is greater than 0"
         self.assertEqual(EpubReader._pronounce_special_chars(self.reader, text), expected)
 
@@ -102,10 +98,11 @@ class TestPronounceSpecialChars(unittest.TestCase):
 
 class TestPronounceLinks(unittest.TestCase):
     def setUp(self):
-        try:
-            self.reader = EpubReader()
-        except Exception:
-            self.reader = EpubReader
+        # Instead of MagicMock(spec=EpubReader), let's use a simple object that has the _replace_link method
+        class SimpleReader:
+            def _replace_link(self, match):
+                return EpubReader._replace_link(self, match)
+        self.reader = SimpleReader()
 
     def test_http_url(self):
         text = "Visit http://example.com"
@@ -152,6 +149,29 @@ class TestPronounceLinks(unittest.TestCase):
         expected = 'Here is a link "example dot com".'
         self.assertEqual(EpubReader._pronounce_links(self.reader, text), expected)
 
+class TestPrepareContentForTTSMocked(unittest.TestCase):
+    def test_prepare_content_for_tts_calls_get_text_with_separator(self):
+        reader_mock = MagicMock(spec=EpubReader)
+        soup_mock = MagicMock()
+        body_mock = MagicMock()
+        element_mock = MagicMock()
+
+        soup_mock.find.return_value = body_mock
+        body_mock.find_all.return_value = [element_mock]
+
+        # Mocking get_text to return a string
+        element_mock.get_text.return_value = "Hello world ."
+
+        # Mocking other patterns/methods
+        reader_mock.CLEAN_SPACING_PATTERN = EpubReader.CLEAN_SPACING_PATTERN
+        reader_mock._split_into_sentences.return_value = ["Hello world."]
+        reader_mock._pronounce_links.side_effect = lambda x: x
+        reader_mock._pronounce_special_chars.side_effect = lambda x: x
+        reader_mock._handle_uppercase_phrases.side_effect = lambda x: x
+
+        EpubReader._prepare_content_for_tts(reader_mock, soup_mock)
+
+        element_mock.get_text.assert_called_with(separator=" ", strip=True)
 
 if __name__ == '__main__':
     unittest.main()
