@@ -218,6 +218,7 @@ class EpubReader(QMainWindow):
         self.items_by_href = {}
         self.current_chapter_index = 0
         self.image_b64_cache = {}
+        self.toc_items_by_index = {}
         
         self.kokoro_pipelines = {}
         self.tts_thread = None
@@ -527,14 +528,15 @@ class EpubReader(QMainWindow):
         self.save_progress()
         self.update_toc_selection()
         
-    def _replace_link(self, match):
+    @staticmethod
+    def _replace_link(match):
         url = match.group(0)
-        pronounceable = self.PROTOCOL_PATTERN.sub('', url)
+        pronounceable = EpubReader.PROTOCOL_PATTERN.sub('', url)
         pronounceable = pronounceable.replace('.', ' dot ').replace('/', ' slash ').replace('-', ' hyphen ').replace('_', ' underscore ')
-        return self.SPACE_PATTERN.sub(' ', pronounceable).strip()
+        return EpubReader.SPACE_PATTERN.sub(' ', pronounceable).strip()
 
     def _pronounce_links(self, text):
-        return self.LINK_PATTERN.sub(self._replace_link, text)
+        return EpubReader.LINK_PATTERN.sub(EpubReader._replace_link, text)
 
     def _pronounce_special_chars(self, text):
         replacements = {' > ': ' is greater than ', ' < ': ' is less than ', '+': ' plus ', '=': ' equals ', ' - ': ' minus '}
@@ -583,6 +585,7 @@ class EpubReader(QMainWindow):
             self.href_map = {item.get_name(): i for i, id in enumerate(self.spine) if (item := self.current_book.get_item_with_id(id[0]))}
             self.items_by_href = {item.get_name(): item for item in self.current_book.get_items()}
             self.image_b64_cache = {}
+            self.toc_items_by_index = {}
             self.web_view.page().href_map = self.href_map
             self.populate_toc()
             self.current_chapter_index = book_data.get('last_position', 0)
@@ -654,8 +657,11 @@ class EpubReader(QMainWindow):
         item = QListWidgetItem("    " * level + link.title)
         href = link.href.split('#')[0]
         if href in self.href_map:
-            item.setData(Qt.ItemDataRole.UserRole, self.href_map[href])
+            chapter_idx = self.href_map[href]
+            item.setData(Qt.ItemDataRole.UserRole, chapter_idx)
             self.toc_list.addItem(item)
+            if chapter_idx not in self.toc_items_by_index:
+                self.toc_items_by_index[chapter_idx] = item
 
     def toc_item_clicked(self, item):
         if (index := item.data(Qt.ItemDataRole.UserRole)) is not None:
@@ -685,12 +691,10 @@ class EpubReader(QMainWindow):
 
     def update_toc_selection(self):
         self.toc_list.setCurrentRow(-1)
-        for i in range(self.toc_list.count()):
-            item = self.toc_list.item(i)
-            if item.data(Qt.ItemDataRole.UserRole) == self.current_chapter_index:
-                item.setSelected(True)
-                self.toc_list.scrollToItem(item, QListWidget.ScrollHint.PositionAtCenter)
-                break
+        item = self.toc_items_by_index.get(self.current_chapter_index)
+        if item:
+            item.setSelected(True)
+            self.toc_list.scrollToItem(item, QListWidget.ScrollHint.PositionAtCenter)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
