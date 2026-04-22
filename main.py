@@ -156,14 +156,23 @@ class EpubReader(QMainWindow):
 
     ACRONYMS = {'USA', 'UK', 'EU', 'UN', 'NASA', 'FBI', 'CIA', 'CEO', 'CFO', 'CTO', 'NFL', 'NBA', 'MLB', 'NHL', 'ESPN', 'NATO', 'UNESCO', 'WHO', 'FAQ', 'DIY', 'AI', 'VR', 'AR', 'URL', 'HTTP', 'HTTPS', 'WWW', 'PDF', 'EPUB'}
 
-    SENTENCE_SPLIT_PATTERN = re.compile(r'(?<=[.?!])\s+')
+    SENTENCE_SPLIT_PATTERN = re.compile(
+        r'(?<=(?<!\bMr)(?<!\bMs)(?<!\bDr)(?<!\bSr)(?<!\bJr)(?<!\bvs)(?<!\bSt)'
+        r'(?<!\bMrs)(?<!\betc)(?<!\bGen)(?<!\bRep)(?<!\bSen)(?<!\bU\.S)'
+        r'(?<!\bProf)'
+        r'(?<!\bU\.S\.A)'
+        r'(?<!\b[A-Z])'
+        r'(?<!\.)'
+        r'[.?!])\s+'
+    )
     LINK_PATTERN = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
     PROTOCOL_PATTERN = re.compile(r'^https?://')
     SPACE_PATTERN = re.compile(r' +')
     PUNCTUATION_SUFFIX_PATTERN = re.compile(r'[.,!?;:]$')
     CLEAN_SPACING_PATTERN = re.compile(r' +([.,!?;:])')
 
-    def _split_into_sentences(self, text):
+    @staticmethod
+    def _split_into_sentences(text):
         if not text:
             return []
         sentences = EpubReader.SENTENCE_SPLIT_PATTERN.split(text.strip())

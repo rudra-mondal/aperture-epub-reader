@@ -173,5 +173,45 @@ class TestPrepareContentForTTSMocked(unittest.TestCase):
 
         element_mock.get_text.assert_called_with(separator=" ", strip=True)
 
+class TestSentenceSplit(unittest.TestCase):
+    def test_basic_split(self):
+        text = "Hello world. How are you?"
+        expected = ["Hello world.", "How are you?"]
+        self.assertEqual(EpubReader._split_into_sentences(text), expected)
+
+    def test_abbreviation_mr(self):
+        text = "Mr. Smith went home."
+        expected = ["Mr. Smith went home."]
+        self.assertEqual(EpubReader._split_into_sentences(text), expected)
+
+    def test_acronym_usa(self):
+        text = "The U.S.A. is a country."
+        expected = ["The U.S.A. is a country."]
+        self.assertEqual(EpubReader._split_into_sentences(text), expected)
+
+    def test_multiple_punctuation(self):
+        text = "Wait! What? No way."
+        expected = ["Wait!", "What?", "No way."]
+        self.assertEqual(EpubReader._split_into_sentences(text), expected)
+
+    def test_ellipsis(self):
+        text = "An ellipsis... is tricky."
+        expected = ["An ellipsis... is tricky."]
+        self.assertEqual(EpubReader._split_into_sentences(text), expected)
+
+    def test_multiple_spaces(self):
+        text = "Sentence one.    Sentence two."
+        expected = ["Sentence one.", "Sentence two."]
+        self.assertEqual(EpubReader._split_into_sentences(text), expected)
+
+    def test_empty_input(self):
+        self.assertEqual(EpubReader._split_into_sentences(""), [])
+        self.assertEqual(EpubReader._split_into_sentences(None), [])
+
+    def test_trailing_spaces(self):
+        text = "  Hello world.  "
+        expected = ["Hello world."]
+        self.assertEqual(EpubReader._split_into_sentences(text), expected)
+
 if __name__ == '__main__':
     unittest.main()
