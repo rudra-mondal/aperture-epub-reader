@@ -186,7 +186,7 @@ class EpubReader(QMainWindow):
         sentence_index = 0
         
         for element in body.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote']):
-            # FIX: Use separator=" " to preserve spaces between inline tags like <b> and <i>.
+            # Use separator=" " to preserve spaces between inline tags like <b> and <i>.
             original_text = element.get_text(separator=" ", strip=True)
             if not original_text:
                 continue
