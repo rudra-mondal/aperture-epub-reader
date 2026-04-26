@@ -23,7 +23,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QComboBox, QSlider, QMessageBox, QFrame)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
-from PyQt6.QtCore import Qt, QUrl, QEvent, pyqtSignal, QObject, QThread
+from PyQt6.QtCore import Qt, QEvent, pyqtSignal, QObject, QThread
 from PyQt6.QtGui import QIcon, QDesktopServices
 
 # --- Logging ---
