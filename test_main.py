@@ -173,6 +173,63 @@ class TestPrepareContentForTTSMocked(unittest.TestCase):
 
         element_mock.get_text.assert_called_with(separator=" ", strip=True)
 
+class TestSanitization(unittest.TestCase):
+    def test_sanitize_decomposes_dangerous_tags(self):
+        soup_mock = MagicMock()
+        dangerous_tag = MagicMock()
+        # Mocking soup(dangerous_tags) which is used in _sanitize_soup
+        soup_mock.return_value = [dangerous_tag]
+
+        # find_all(True) should return tags to check for attributes
+        # We'll return an empty list here to focus on decomposition
+        soup_mock.find_all.return_value = []
+
+        EpubReader._sanitize_soup(soup_mock)
+
+        # Check that soup was called with the list of dangerous tags
+        soup_mock.assert_called()
+        args, _ = soup_mock.call_args
+        self.assertIn('script', args[0])
+        self.assertIn('iframe', args[0])
+
+        # Check that decompose was called on the tag returned by soup(dangerous_tags)
+        dangerous_tag.decompose.assert_called()
+
+    def test_sanitize_strips_event_handlers(self):
+        soup_mock = MagicMock()
+        # Mock soup(dangerous_tags) to return nothing
+        soup_mock.return_value = []
+
+        tag_with_events = MagicMock()
+        tag_with_events.attrs = {'onclick': 'evil()', 'onmouseover': 'evil()', 'class': 'safe'}
+
+        soup_mock.find_all.return_value = [tag_with_events]
+
+        EpubReader._sanitize_soup(soup_mock)
+
+        self.assertNotIn('onclick', tag_with_events.attrs)
+        self.assertNotIn('onmouseover', tag_with_events.attrs)
+        self.assertIn('class', tag_with_events.attrs)
+
+    def test_sanitize_strips_javascript_uris(self):
+        soup_mock = MagicMock()
+        soup_mock.return_value = []
+
+        tag_with_js_uri = MagicMock()
+        tag_with_js_uri.attrs = {
+            'href': 'javascript:alert(1)',
+            'src': '  JAVASCRIPT:evil() ',
+            'action': '/safe'
+        }
+
+        soup_mock.find_all.return_value = [tag_with_js_uri]
+
+        EpubReader._sanitize_soup(soup_mock)
+
+        self.assertNotIn('href', tag_with_js_uri.attrs)
+        self.assertNotIn('src', tag_with_js_uri.attrs)
+        self.assertEqual(tag_with_js_uri.attrs['action'], '/safe')
+
 class TestSentenceSplit(unittest.TestCase):
     def test_basic_split(self):
         text = "Hello world. How are you?"
