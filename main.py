@@ -563,8 +563,15 @@ class EpubReader(QMainWindow):
         processed_lines = []
         for line in lines:
             words = line.split(' ')
-            uppercase_words = [w for w in words if w.isupper() and len(w) > 1]
-            if len(uppercase_words) > 2:
+
+            uppercase_count = 0
+            for w in words:
+                if w.isupper() and len(w) > 1:
+                    uppercase_count += 1
+                    if uppercase_count > 2:
+                        break
+
+            if uppercase_count > 2:
                 processed_words = []
                 for word in words:
                     clean_word = word.rstrip('.,!?;:')
