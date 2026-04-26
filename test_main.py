@@ -213,5 +213,29 @@ class TestSentenceSplit(unittest.TestCase):
         expected = ["Hello world."]
         self.assertEqual(EpubReader._split_into_sentences(text), expected)
 
+class TestGetMimeType(unittest.TestCase):
+    def test_mime_jpeg(self):
+        self.assertEqual(EpubReader._get_mime_type("image.jpg"), "image/jpeg")
+        self.assertEqual(EpubReader._get_mime_type("photo.jpeg"), "image/jpeg")
+
+    def test_mime_png(self):
+        self.assertEqual(EpubReader._get_mime_type("icon.png"), "image/png")
+
+    def test_mime_gif(self):
+        self.assertEqual(EpubReader._get_mime_type("anim.gif"), "image/gif")
+
+    def test_mime_svg(self):
+        self.assertEqual(EpubReader._get_mime_type("vector.svg"), "image/svg+xml")
+        self.assertEqual(EpubReader._get_mime_type("compressed.svgz"), "image/svg+xml")
+
+    def test_mime_case_insensitivity(self):
+        self.assertEqual(EpubReader._get_mime_type("UPPER.PNG"), "image/png")
+        self.assertEqual(EpubReader._get_mime_type("Mixed.JpEg"), "image/jpeg")
+
+    def test_mime_fallback(self):
+        self.assertEqual(EpubReader._get_mime_type("readme.txt"), "application/octet-stream")
+        self.assertEqual(EpubReader._get_mime_type("no_extension"), "application/octet-stream")
+        self.assertEqual(EpubReader._get_mime_type(""), "application/octet-stream")
+
 if __name__ == '__main__':
     unittest.main()

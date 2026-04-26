@@ -505,7 +505,7 @@ class EpubReader(QMainWindow):
                 if img_path not in self.image_b64_cache:
                     img_item = self.items_by_href[img_path]
                     img_data = img_item.get_content()
-                    mime = self._get_mime_type(img_item.get_name())
+                    mime = EpubReader._get_mime_type(img_item.get_name())
                     b64 = base64.b64encode(img_data).decode('utf-8')
                     self.image_b64_cache[img_path] = f"data:{mime};base64,{b64}"
                 img_tag['src'] = self.image_b64_cache[img_path]
@@ -681,7 +681,8 @@ class EpubReader(QMainWindow):
         if (index := item.data(Qt.ItemDataRole.UserRole)) is not None:
             self.load_chapter(index)
 
-    def _get_mime_type(self, filename):
+    @staticmethod
+    def _get_mime_type(filename):
         fn_lower = filename.lower()
         if fn_lower.endswith(('.jpg', '.jpeg')): return 'image/jpeg'
         if fn_lower.endswith('.png'): return 'image/png'
