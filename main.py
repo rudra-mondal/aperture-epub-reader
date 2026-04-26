@@ -178,6 +178,28 @@ class EpubReader(QMainWindow):
         sentences = EpubReader.SENTENCE_SPLIT_PATTERN.split(text.strip())
         return [s.strip() for s in sentences if s.strip()]
 
+    @staticmethod
+    def _sanitize_soup(soup):
+        """Sanitize the BeautifulSoup object to prevent XSS."""
+        # Remove dangerous tags
+        dangerous_tags = [
+            'script', 'iframe', 'object', 'embed', 'applet',
+            'form', 'button', 'input', 'textarea', 'select',
+            'meta', 'link', 'style'
+        ]
+        for tag in soup(dangerous_tags):
+            tag.decompose()
+
+        # Strip event handler attributes and javascript: URIs
+        for tag in soup.find_all(True):
+            for attr in list(tag.attrs.keys()):
+                if attr.lower().startswith('on'):
+                    del tag.attrs[attr]
+                elif attr.lower() in ['href', 'src', 'action', 'formaction']:
+                    value = tag.attrs[attr]
+                    if isinstance(value, str) and value.lower().strip().startswith('javascript:'):
+                        del tag.attrs[attr]
+
     def _prepare_content_for_tts(self, soup):
         if not (body := soup.find('body')):
             return []
@@ -314,6 +336,11 @@ class EpubReader(QMainWindow):
         custom_page.internal_link_clicked.connect(self.load_chapter)
         self.web_view.setPage(custom_page)
         self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, False)
+        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
+        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, False)
+        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, False)
+        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, True)
         
         control_bar_widget = QWidget()
         control_bar_widget.setStyleSheet("background-color: #f0f0f0; border-top: 1px solid #d0d0d0;")
@@ -512,8 +539,7 @@ class EpubReader(QMainWindow):
             else:
                 img_tag['src'] = ''
         
-        for s in soup(['style', 'link', 'script']):
-            s.decompose()
+        EpubReader._sanitize_soup(soup)
         
         self.tts_text_map = self._prepare_content_for_tts(soup)
 
