@@ -230,6 +230,31 @@ class TestSanitization(unittest.TestCase):
         self.assertNotIn('src', tag_with_js_uri.attrs)
         self.assertEqual(tag_with_js_uri.attrs['action'], '/safe')
 
+    def test_sanitize_strips_obfuscated_javascript_uris(self):
+        soup_mock = MagicMock()
+        soup_mock.return_value = []
+
+        # List of obfuscated javascript URIs that should be blocked
+        obfuscated_uris = [
+            'javascript\n:alert(1)',
+            'java\x00script:alert(2)',
+            'javascript\r:alert(3)',
+            'javascript\t:alert(4)',
+            '  java\nscript\t:alert(5)',
+            'j a v a s c r i p t : alert(6)',
+            'java\x01script:alert(7)',
+            'java\x1fscript:alert(8)'
+        ]
+
+        for uri in obfuscated_uris:
+            tag = MagicMock()
+            tag.attrs = {'href': uri}
+            soup_mock.find_all.return_value = [tag]
+
+            EpubReader._sanitize_soup(soup_mock)
+
+            self.assertNotIn('href', tag.attrs, f"Failed to block obfuscated URI: {uri!r}")
+
 class TestSentenceSplit(unittest.TestCase):
     def test_basic_split(self):
         text = "Hello world. How are you?"
