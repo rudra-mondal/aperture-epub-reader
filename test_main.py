@@ -294,5 +294,68 @@ class TestGetMimeType(unittest.TestCase):
         self.assertEqual(EpubReader._get_mime_type("no_extension"), "application/octet-stream")
         self.assertEqual(EpubReader._get_mime_type(""), "application/octet-stream")
 
+class TestHandleUppercasePhrases(unittest.TestCase):
+    def setUp(self):
+        self.reader = MagicMock(spec=EpubReader)
+        # The method uses EpubReader.ACRONYMS directly, but we might want to mock self if it used self.
+        # Since it uses the class name, we don't strictly need to attach it to self,
+        # but the first argument to the method call in tests will be self.
+
+    def test_no_transformation_low_count(self):
+        text = "THIS IS fine."
+        # Only 2 uppercase words of length > 1: THIS, IS
+        # "fine." is not uppercase.
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), text)
+
+    def test_transformation_high_count(self):
+        text = "THIS IS NOT FINE."
+        # 4 uppercase words of length > 1
+        expected = "This Is Not Fine."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_preserves_acronyms(self):
+        text = "THE USA IS GREAT."
+        # 4 uppercase words (THE, USA, IS, GREAT), USA is in ACRONYMS.
+        expected = "The USA Is Great."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_preserves_punctuation(self):
+        text = "HELLO, WORLD! HOW ARE YOU?"
+        # All words are uppercase (including punctuation).
+        expected = "Hello, World! How Are You?"
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_independent_lines(self):
+        text = "THIS IS NOT FINE.\nBut this is okay."
+        expected = "This Is Not Fine.\nBut this is okay."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_short_words_ignored_in_count(self):
+        text = "I AM A BIG BOY."
+        # Words: "I" (len 1), "AM" (len 2, UP), "A" (len 1), "BIG" (len 3, UP), "BOY." (len 4, UP)
+        # Uppercase count = 3 (AM, BIG, BOY.) -> Triggers transformation.
+        # Transformation:
+        # "I" -> clean "I" (len 1) -> not transformed.
+        # "AM" -> clean "AM" (len 2, UP, not ACRONYM) -> "Am"
+        # "A" -> clean "A" (len 1) -> not transformed.
+        # "BIG" -> clean "BIG" (len 3, UP, not ACRONYM) -> "Big"
+        # "BOY." -> clean "BOY" (len 3, UP, not ACRONYM) -> "Boy."
+        expected = "I Am A Big Boy."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_mixed_case_not_counted(self):
+        text = "This IS NOT REALLY fine."
+        # IS, NOT, REALLY are 3 uppercase words. Triggers.
+        # This (Mixed) -> not transformed.
+        # IS -> Is
+        # NOT -> Not
+        # REALLY -> Really
+        # fine. (lower) -> not transformed.
+        expected = "This Is Not Really fine."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_empty_string(self):
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, ""), "")
+
 if __name__ == '__main__':
     unittest.main()
