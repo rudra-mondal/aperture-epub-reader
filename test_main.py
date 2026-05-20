@@ -294,5 +294,58 @@ class TestGetMimeType(unittest.TestCase):
         self.assertEqual(EpubReader._get_mime_type("no_extension"), "application/octet-stream")
         self.assertEqual(EpubReader._get_mime_type(""), "application/octet-stream")
 
+class TestHandleUppercasePhrases(unittest.TestCase):
+    def setUp(self):
+        try:
+            self.reader = EpubReader()
+        except Exception:
+            self.reader = MagicMock()
+
+    def test_no_uppercase(self):
+        text = "this is a normal sentence."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), text)
+
+    def test_one_uppercase_word(self):
+        text = "this is a NORMAL sentence."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), text)
+
+    def test_two_uppercase_words(self):
+        text = "this IS NORMAL."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), text)
+
+    def test_three_uppercase_words_trigger(self):
+        text = "THIS IS NORMAL."
+        expected = "This Is Normal."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_acronym_preservation(self):
+        # USA is in EpubReader.ACRONYMS
+        text = "THE USA IS GREAT."
+        expected = "The USA Is Great."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_single_letter_ignored(self):
+        # 'I' is length 1, so it shouldn't count towards the 3-word trigger
+        text = "I AM FINE."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), text)
+
+        # But if we have 3 other words
+        text = "I AM VERY FINE."
+        expected = "I Am Very Fine."
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_punctuation_handling(self):
+        text = "WAIT! STOP! DANGER!"
+        expected = "Wait! Stop! Danger!"
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_multi_line_handling(self):
+        text = "FIRST SECOND THIRD\nfourth fifth sixth\nSEVENTH EIGHTH NINTH"
+        expected = "First Second Third\nfourth fifth sixth\nSeventh Eighth Ninth"
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, text), expected)
+
+    def test_empty_string(self):
+        self.assertEqual(EpubReader._handle_uppercase_phrases(self.reader, ""), "")
+
 if __name__ == '__main__':
     unittest.main()
