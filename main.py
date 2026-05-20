@@ -197,8 +197,11 @@ class EpubReader(QMainWindow):
                     del tag.attrs[attr]
                 elif attr.lower() in ['href', 'src', 'action', 'formaction']:
                     value = tag.attrs[attr]
-                    if isinstance(value, str) and value.lower().strip().startswith('javascript:'):
-                        del tag.attrs[attr]
+                    if isinstance(value, str):
+                        # Strip all whitespaces and C0 control characters (\x00-\x1F) for normalization
+                        normalized_value = re.sub(r'[\s\x00-\x1f]', '', value)
+                        if normalized_value.lower().startswith('javascript:'):
+                            del tag.attrs[attr]
 
     def _prepare_content_for_tts(self, soup):
         if not (body := soup.find('body')):
