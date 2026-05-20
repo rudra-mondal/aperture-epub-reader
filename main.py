@@ -145,7 +145,7 @@ class EpubReader(QMainWindow):
             self.href_map = href_map
         def acceptNavigationRequest(self, url, _type, isMainFrame):
             if _type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
-                if (scheme := url.scheme()) in ['http', 'https']:
+                if (scheme := url.scheme()) in EpubReader.AUTHORIZED_SCHEMES:
                     QDesktopServices.openUrl(url)
                     return False
                 if (path := url.path().lstrip('/')) in self.href_map:
@@ -155,6 +155,8 @@ class EpubReader(QMainWindow):
             return True
 
     ACRONYMS = {'USA', 'UK', 'EU', 'UN', 'NASA', 'FBI', 'CIA', 'CEO', 'CFO', 'CTO', 'NFL', 'NBA', 'MLB', 'NHL', 'ESPN', 'NATO', 'UNESCO', 'WHO', 'FAQ', 'DIY', 'AI', 'VR', 'AR', 'URL', 'HTTP', 'HTTPS', 'WWW', 'PDF', 'EPUB'}
+    AUTHORIZED_SCHEMES = frozenset(['http', 'https'])
+    SENSITIVE_ATTRS = frozenset(['href', 'src', 'action', 'formaction'])
 
     SENTENCE_SPLIT_PATTERN = re.compile(
         r'(?<=(?<!\bMr)(?<!\bMs)(?<!\bDr)(?<!\bSr)(?<!\bJr)(?<!\bvs)(?<!\bSt)'
@@ -195,7 +197,7 @@ class EpubReader(QMainWindow):
             for attr in list(tag.attrs.keys()):
                 if attr.lower().startswith('on'):
                     del tag.attrs[attr]
-                elif attr.lower() in ['href', 'src', 'action', 'formaction']:
+                elif attr.lower() in EpubReader.SENSITIVE_ATTRS:
                     value = tag.attrs[attr]
                     if isinstance(value, str) and value.lower().strip().startswith('javascript:'):
                         del tag.attrs[attr]
