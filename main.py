@@ -58,6 +58,8 @@ class TTSWorker(QObject):
         self.speed = 1.0
         self._is_running = False
         self._is_paused = False
+        self._resume_event = threading.Event()
+        self._resume_event.set()
         self.audio_queue = queue.Queue(maxsize=10)
 
     def configure(self, pipeline, tts_text_map, voice, speed):
@@ -88,6 +90,7 @@ class TTSWorker(QObject):
     def run(self):
         self._is_running = True
         self._is_paused = False
+        self._resume_event.set()
         producer_thread = threading.Thread(target=self._producer)
         producer_thread.daemon = True
         producer_thread.start()
@@ -103,8 +106,7 @@ class TTSWorker(QObject):
                     self.highlight_requested.emit(chunk_id)
                     last_highlighted_id = chunk_id
 
-                while self._is_paused and self._is_running:
-                    time.sleep(0.1)
+                self._resume_event.wait()
 
                 if not self._is_running:
                     break
@@ -121,6 +123,7 @@ class TTSWorker(QObject):
     def stop(self):
         self._is_running = False
         self._is_paused = False
+        self._resume_event.set()
         while not self.audio_queue.empty():
             try:
                 self.audio_queue.get_nowait()
@@ -131,10 +134,12 @@ class TTSWorker(QObject):
 
     def pause(self):
         self._is_paused = True
+        self._resume_event.clear()
         sd.stop()
 
     def resume(self):
         self._is_paused = False
+        self._resume_event.set()
 
 # --- Main Application Window ---
 class EpubReader(QMainWindow):
@@ -145,7 +150,7 @@ class EpubReader(QMainWindow):
             self.href_map = href_map
         def acceptNavigationRequest(self, url, _type, isMainFrame):
             if _type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
-                if (scheme := url.scheme()) in ['http', 'https']:
+                if (scheme := url.scheme()) in EpubReader.AUTHORIZED_SCHEMES:
                     QDesktopServices.openUrl(url)
                     return False
                 if (path := url.path().lstrip('/')) in self.href_map:
@@ -155,6 +160,8 @@ class EpubReader(QMainWindow):
             return True
 
     ACRONYMS = {'USA', 'UK', 'EU', 'UN', 'NASA', 'FBI', 'CIA', 'CEO', 'CFO', 'CTO', 'NFL', 'NBA', 'MLB', 'NHL', 'ESPN', 'NATO', 'UNESCO', 'WHO', 'FAQ', 'DIY', 'AI', 'VR', 'AR', 'URL', 'HTTP', 'HTTPS', 'WWW', 'PDF', 'EPUB'}
+    AUTHORIZED_SCHEMES = frozenset(['http', 'https'])
+    SENSITIVE_ATTRS = frozenset(['href', 'src', 'action', 'formaction'])
 
     SENTENCE_SPLIT_PATTERN = re.compile(
         r'(?<=(?<!\bMr)(?<!\bMs)(?<!\bDr)(?<!\bSr)(?<!\bJr)(?<!\bvs)(?<!\bSt)'
@@ -195,7 +202,7 @@ class EpubReader(QMainWindow):
             for attr in list(tag.attrs.keys()):
                 if attr.lower().startswith('on'):
                     del tag.attrs[attr]
-                elif attr.lower() in ['href', 'src', 'action', 'formaction']:
+                elif attr.lower() in EpubReader.SENSITIVE_ATTRS:
                     value = tag.attrs[attr]
                     if isinstance(value, str) and value.lower().strip().startswith('javascript:'):
                         del tag.attrs[attr]
